@@ -46,6 +46,11 @@ class OPT():
 # LAYERS
 #################
 
+def STAX(stax_layers, input_shape, key):
+  _init_params, _layer = stax_layers
+  _params = _init_params(key, input_shape)[1]
+  return _params, _layer
+
 def MRF(params=None):
   '''markov random field'''
   def init_params(L, A, key=None):
