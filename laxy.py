@@ -72,10 +72,9 @@ def Conv1D(params=None):
   def init_params(in_dims, out_dims, win, key):
     return {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win)),
             "b":jnp.zeros(out_dims)}  
-  def layer(x, use_bias=True, stride=1, padding="SAME", key=None):
-    w = params["w"]
+  def layer(x, use_bias=True, stride=1, padding="SAME"):
     x = x.transpose([0,2,1])
-    y = jax.lax.conv(x,w,(stride,),padding=padding)
+    y = jax.lax.conv(x,params["w"],(stride,),padding=padding)
     y = y.transpose([0,2,1]) 
     if use_bias: y += params["b"]
     return y
