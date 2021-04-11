@@ -1,2 +1,2 @@
 # laxy
-lazy nn wrapper around jax
+lazy wrapper around jax
