@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import random
 from jax.experimental.optimizers import adam
 
 class KEY():
@@ -46,42 +47,50 @@ class OPT():
 # LAYERS
 #################
 
-def STAX(stax_layers, input_shape, key):
+def STAX(stax_layers, input_shape, key=None, seed=0):
+  if key is None: key = jax.random.PRNGKey(seed)
   _init_params, _layer = stax_layers
   _params = _init_params(key, input_shape)[1]
   return _params, _layer
 
 def MRF(params=None):
   '''markov random field'''
-  def init_params(L, A, key=None):
-    return {"w":jnp.zeros((L,A,L,A)),
-            "b":jnp.zeros((L,A))}
-  def layer(x, use_bias=True, l2=False):
-    b,w = params["b"],params["w"]
-    L,A = b.shape
+  def init_params(L, A, use_bias=True, key=None, seed=0):
+    params = {"w":jnp.zeros((L,A,L,A))}
+    if use_bias: params["b"] = jnp.zeros((L,A))
+    return params
+  
+  def layer(x, l2=False):
+    w = params["w"]
+    L,A = w.shape[:2]
     w = w * (1-jnp.eye(L)[:,None,:,None])
     w = 0.5 * (w + w.transpose([2,3,0,1]))
-    x_pred = jnp.tensordot(x,w,2) 
-    if use_bias: x_pred += b
+    y = jnp.tensordot(x,w,2) 
+    if "b" in params: y += params["b"]
+      
     if l2:
-      l2_loss = 0.5 * (L-1) * A * jnp.square(w).sum() + jnp.square(b).sum()
-      return x_pred, l2_loss
+      l2_loss = 0.5 * (L-1) * A * jnp.square(w).sum() 
+      if "b" in params l2_loss += jnp.square(params["b"]).sum()
+      return y, l2_loss
     else:
-      return x_pred
+      return y
 
   if params is None: return init_params
   else: return layer
 
 def Conv1D(params=None):
-  '''convolution'''
-  def init_params(in_dims, out_dims, win, key):
-    return {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win)),
-            "b":jnp.zeros(out_dims)}  
-  def layer(x, use_bias=True, stride=1, padding="SAME"):
+  '''1D convolution'''
+  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=0):
+    if key is None: key = jax.random.PRNGKey(seed)
+    params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win))}
+    if use_bias: params["b"] = jnp.zeros(out_dims)
+    return params
+      
+  def layer(x, stride=1, padding="SAME"):
     x = x.transpose([0,2,1])
     y = jax.lax.conv(x,params["w"],(stride,),padding=padding)
     y = y.transpose([0,2,1]) 
-    if use_bias: y += params["b"]
+    if "b" in params: y += params["b"]
     return y
   
   if params is None: return init_params
@@ -89,34 +98,43 @@ def Conv1D(params=None):
 
 def Conv2D(params=None):
   '''2D convolution'''
-  def init_params(in_dims, out_dims, win, key):
-    return {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win,win)),
-            "b":jnp.zeros(out_dims)}
+  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=0):
+    if key is None: key = jax.random.PRNGKey(seed)
+    params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win,win))}
+    if use_bias: params["b"] = jnp.zeros(out_dims)
+    return params
+      
   def layer(x, use_bias=True, stride=1, padding="SAME"):
     x = x.transpose([0,3,1,2]) # (batch, channels, row, col)
     y = jax.lax.conv(x,params["w"],(stride,stride),padding=padding) # (batch, filters, row, col)
     y = y.transpose([0,2,3,1]) # (batch, row, col, filters)
     if use_bias: y += params["b"]
     return y
+  
   if params is None: return init_params
   else: return layer
 
 def Dense(params=None):
   '''dense or linear layer'''
-  def init_params(in_dims, out_dims, key):
-    return {"w":jax.nn.initializers.glorot_normal()(key,(in_dims,out_dims)),
-            "b":jnp.zeros(out_dims)}
+  def init_params(in_dims, out_dims, use_bias=True, key=None, seed=0):
+    if key is None: key = jax.random.PRNGKey(seed)
+    params = {"w":jax.nn.initializers.glorot_normal()(key,(in_dims,out_dims))}
+    if use_bias: params["b"] = jnp.zeros(out_dims)
+    return params
+  
   def layer(x, use_bias=True):
     y = x @ params["w"]
-    if use_bias: y += params["b"]
+    if "b" in params: y += params["b"]
     return y
+  
   if params is None: return init_params
   else: return layer
 
 def GRU(params=None):
   '''gated recurrent unit'''
   # wikipedia.org/wiki/Gated_recurrent_unit
-  def init_params(in_dims, out_dims, key):
+  def init_params(in_dims, out_dims, key=None, seed=0):
+    if key is None: key = jax.random.PRNGKey(seed):
     gn = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
     zr = lambda i: jnp.zeros(i)
     k = jax.random.split(key, num=6)
