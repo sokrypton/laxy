@@ -135,18 +135,17 @@ def Dense(params=None):
   else: return layer
 
 def GRU(params=None):
-  '''gated recurrent unit'''
+  '''Gated recurrent unit (GRU)'''
   # wikipedia.org/wiki/Gated_recurrent_unit
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
-    gn = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
-    zr = lambda i: jnp.zeros(i)
+    G = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
     k = jax.random.split(key, num=6)
-    return {"z":{"w":gn(k[0],in_dims),"u":gn(k[1],out_dims),"b":zr(out_dims)},
-            "r":{"w":gn(k[2],in_dims),"u":gn(k[3],out_dims),"b":zr(out_dims)},
-            "h":{"w":gn(k[4],in_dims),"u":gn(k[5],out_dims),"b":zr(out_dims)}}
+    return {"z":{"w":G(k[0],in_dims),"u":G(k[1],out_dims),"b":jnp.zeros(out_dims)},
+            "r":{"w":G(k[2],in_dims),"u":G(k[3],out_dims),"b":jnp.zeros(out_dims)},
+            "h":{"w":G(k[4],in_dims),"u":G(k[5],out_dims),"b":jnp.zeros(out_dims)}}
 
-  def layer(x, h0=None):
+  def layer(x):
     def gru_cell(h,x):
       zt = jax.nn.sigmoid(x@params["z"]["w"] + h@params["z"]["u"] + params["z"]["b"])
       rt = jax.nn.sigmoid(x@params["r"]["w"] + h@params["r"]["u"] + params["r"]["b"])
@@ -154,9 +153,41 @@ def GRU(params=None):
       h = (1-zt)*h + zt*ht
       return h,h
 
-    if h0 is None: h0 = jnp.zeros([x.shape[0],params["z"]["w"].shape[1]])
-    h,seq = jax.lax.scan(gru_cell,h0,x.swapaxes(0,1))
-    return seq.swapaxes(0,1)
+    out_dims = params["z"]["w"].shape[1]
+    h0 = jnp.zeros(out_dims)
+    h,seq = jax.lax.scan(gru_cell,h0,x)
+    return seq
 
   if params is None: return init_params
-  else: return layer
+  else: return jax.vmap(layer)
+
+def LSTM(params=None):
+  '''Long short-term memory (LSTM)'''
+  # wikipedia.org/wiki/Long_short-term_memory#LSTM_with_a_forget_gate
+  def init_params(in_dims, out_dims, key=None, seed=None):
+    if key is None: key = get_random_key(seed)
+    G = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
+    k = jax.random.split(key, num=8)
+    return {"f":{"w":G(k[0],in_dims),"u":G(k[1],out_dims),"b":jnp.ones(out_dims)},  # forget gate
+            "i":{"w":G(k[2],in_dims),"u":G(k[3],out_dims),"b":jnp.zeros(out_dims)}, # input gate
+            "o":{"w":G(k[4],in_dims),"u":G(k[5],out_dims),"b":jnp.zeros(out_dims)}, # output gate
+            "g":{"w":G(k[6],in_dims),"u":G(k[7],out_dims),"b":jnp.zeros(out_dims)}} # change gate
+
+  def layer(x):
+    def lstm_cell(hc,x):
+      h,c = hc
+      f_t = jax.nn.sigmoid(x@params["f"]["w"] + h@params["f"]["u"] + params["f"]["b"])
+      i_t = jax.nn.sigmoid(x@params["i"]["w"] + h@params["i"]["u"] + params["i"]["b"])
+      o_t = jax.nn.sigmoid(x@params["o"]["w"] + h@params["o"]["u"] + params["o"]["b"])
+      g_t = jnp.tanh(x@params["g"]["w"] + h@params["g"]["u"] + params["g"]["b"])
+      c_t = f_t * c + i_t * g_t
+      h_t = o_t * jnp.tanh(c_t)
+      return (h_t,c_t),c_t
+
+    out_dims = params["f"]["w"].shape[1]
+    h0 = jnp.zeros(out_dims)
+    h,seq = jax.lax.scan(lstm_cell,(h0,h0),x)
+    return seq
+
+  if params is None: return init_params
+  else: return jax.vmap(layer)
