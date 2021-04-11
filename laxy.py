@@ -2,10 +2,22 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.optimizers import adam
 
+class KEY():
+  '''generate random key'''
+  def __init__(self, seed=0):
+    self.key = jax.random.PRNGKey(seed)    
+  def get(self, num=1):
+    if num > 1:
+      self.key, *subkeys = jax.random.split(self.key, num=(num+1))
+      return subkeys
+    else:
+      self.key, subkey = jax.random.split(self.key)
+      return subkey
+
 class OPT():
-  def __init__(self, fn, params, lr=1e-3):
+  def __init__(self, fn, params, lr=1e-3, optimizer=adam):
     self.k = 0
-    self.opt_init, self.opt_update, self.opt_params = adam(step_size=lr)
+    self.opt_init, self.opt_update, self.opt_params = optimizer(step_size=lr)
     self.opt_state = self.opt_init(params) 
     self.fn = jax.jit(fn)
     self.d_fn = jax.value_and_grad(self.fn)
@@ -55,7 +67,7 @@ def MRF(params=None):
   if params is None: return init_params
   else: return layer
 
-def CNN(params=None):
+def Conv1D(params=None):
   '''convolution'''
   def init_params(in_dims, out_dims, win, key):
     return {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win)),
@@ -71,7 +83,7 @@ def CNN(params=None):
   if params is None: return init_params
   else: return layer
 
-def CNN_2D(params=None):
+def Conv2D(params=None):
   '''2D convolution'''
   def init_params(in_dims, out_dims, win, key):
     return {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win,win)),
@@ -85,7 +97,7 @@ def CNN_2D(params=None):
   if params is None: return init_params
   else: return layer
 
-def DENSE(params=None):
+def Dense(params=None):
   '''dense or linear layer'''
   def init_params(in_dims, out_dims, key):
     return {"w":jax.nn.initializers.glorot_normal()(key,(in_dims,out_dims)),
