@@ -3,10 +3,14 @@ import jax.numpy as jnp
 import random
 from jax.experimental.optimizers import adam
 
+def get_random_key(seed=None):
+  if seed is None: seed = random.randint(0,2147483647)
+  return jax.random.PRNGKey(seed) 
+  
 class KEY():
   '''generate random key'''
-  def __init__(self, seed=0):
-    self.key = jax.random.PRNGKey(seed)    
+  def __init__(self, seed=None):
+    self.key = get_random_key(seed)    
   def get(self, num=1):
     if num > 1:
       self.key, *subkeys = jax.random.split(self.key, num=(num+1))
@@ -47,15 +51,15 @@ class OPT():
 # LAYERS
 #################
 
-def STAX(stax_layers, input_shape, key=None, seed=0):
-  if key is None: key = jax.random.PRNGKey(seed)
+def STAX(stax_layers, input_shape, key=None, seed=None):
+  if key is None: key = get_random_key(seed)
   _init_params, _layer = stax_layers
   _params = _init_params(key, input_shape)[1]
   return _params, _layer
 
 def MRF(params=None):
   '''markov random field'''
-  def init_params(L, A, use_bias=True, key=None, seed=0):
+  def init_params(L, A, use_bias=True, key=None, seed=None):
     params = {"w":jnp.zeros((L,A,L,A))}
     if use_bias: params["b"] = jnp.zeros((L,A))
     return params
@@ -80,8 +84,8 @@ def MRF(params=None):
 
 def Conv1D(params=None):
   '''1D convolution'''
-  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=0):
-    if key is None: key = jax.random.PRNGKey(seed)
+  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
+    if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win))}
     if use_bias: params["b"] = jnp.zeros(out_dims)
     return params
@@ -98,8 +102,8 @@ def Conv1D(params=None):
 
 def Conv2D(params=None):
   '''2D convolution'''
-  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=0):
-    if key is None: key = jax.random.PRNGKey(seed)
+  def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
+    if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win,win))}
     if use_bias: params["b"] = jnp.zeros(out_dims)
     return params
@@ -116,8 +120,8 @@ def Conv2D(params=None):
 
 def Dense(params=None):
   '''dense or linear layer'''
-  def init_params(in_dims, out_dims, use_bias=True, key=None, seed=0):
-    if key is None: key = jax.random.PRNGKey(seed)
+  def init_params(in_dims, out_dims, use_bias=True, key=None, seed=None):
+    if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(in_dims,out_dims))}
     if use_bias: params["b"] = jnp.zeros(out_dims)
     return params
@@ -133,8 +137,8 @@ def Dense(params=None):
 def GRU(params=None):
   '''gated recurrent unit'''
   # wikipedia.org/wiki/Gated_recurrent_unit
-  def init_params(in_dims, out_dims, key=None, seed=0):
-    if key is None: key = jax.random.PRNGKey(seed):
+  def init_params(in_dims, out_dims, key=None, seed=None):
+    if key is None: key = get_random_key(seed)
     gn = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
     zr = lambda i: jnp.zeros(i)
     k = jax.random.split(key, num=6)
