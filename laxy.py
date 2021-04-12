@@ -73,7 +73,7 @@ def MRF(params=None):
     if "b" in params: y += params["b"]
       
     if l2:
-      l2_loss = 0.5 * (L-1) * A * jnp.square(w).sum() 
+      l2_loss = 0.5 * jnp.square(w).sum() 
       if "b" in params: l2_loss += jnp.square(params["b"]).sum()
       return y, l2_loss
     else:
