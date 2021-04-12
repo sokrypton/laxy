@@ -162,7 +162,7 @@ def GRU(params=None):
   if params is None: return init_params
   else: return jax.vmap(layer)
 
-def LSTM(params=None, fast=True):
+def LSTM(params=None):
   '''Long short-term memory (LSTM)'''
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
