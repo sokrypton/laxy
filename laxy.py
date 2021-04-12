@@ -54,7 +54,7 @@ class OPT():
       losses.append(float(loss))
       if (k+1) % (steps//verbose_interval) == 0:
         if verbose: print(k+1, loss)
-    return np.array(losses)
+    return losses
 
   def set_params(self, params):
     self.opt_state = self.opt_init(params)
