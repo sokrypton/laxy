@@ -38,7 +38,8 @@ class OPT():
     self.k += 1
     return loss
   
-  def fit(self, inputs, steps=100, batch_size=None, verbose=True, verbose_interval=10, seed=None):
+  def fit(self, inputs, steps=100, batch_size=None, verbose=True, verbose_interval=10,
+          return_losses=True, seed=None):
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
       key = KEY()
@@ -47,14 +48,14 @@ class OPT():
         return {k:inputs[k][idx] for k in inputs.keys()}
       subsample = jax.jit(subsample)
       
-    losses = []
+    if return_losses: losses = []
     for k in range(steps):
       if batch_size is not None: loss = self.train_on_batch(subsample(key.get()))
       else: loss = self.train_on_batch(inputs)
-      losses.append(float(loss))
+      if return_losses: losses.append(float(loss))
       if (k+1) % (steps//verbose_interval) == 0:
         if verbose: print(k+1, loss)
-    return losses
+    if return_losses: return losses
 
   def set_params(self, params):
     self.opt_state = self.opt_init(params)
