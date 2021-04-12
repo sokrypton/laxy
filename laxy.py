@@ -136,24 +136,25 @@ def Dense(params=None):
 
 def GRU(params=None):
   '''Gated recurrent unit (GRU)'''
-  # wikipedia.org/wiki/Gated_recurrent_unit
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
-    G = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
-    k = jax.random.split(key, num=6)
-    return {"z":{"w":G(k[0],in_dims),"u":G(k[1],out_dims),"b":jnp.zeros(out_dims)},
-            "r":{"w":G(k[2],in_dims),"u":G(k[3],out_dims),"b":jnp.zeros(out_dims)},
-            "h":{"w":G(k[4],in_dims),"u":G(k[5],out_dims),"b":jnp.zeros(out_dims)}}
+    k = jax.random.split(key, num=4)
+    w_ini = jax.nn.initializers.glorot_normal()
+    return {"zr":{"w":w_ini(k[0],(in_dims,out_dims,2)),"u":w_ini(k[1],(out_dims,out_dims,2)),
+                  "b":jnp.zeros((out_dims,2))},
+            "h": {"w":w_ini(k[2],(in_dims,out_dims)),"u":w_ini(k[3],(out_dims,out_dims)),
+                  "b":jnp.zeros(out_dims)}}
 
   def layer(x):
     def gru_cell(h,x):
-      zt = jax.nn.sigmoid(x@params["z"]["w"] + h@params["z"]["u"] + params["z"]["b"])
-      rt = jax.nn.sigmoid(x@params["r"]["w"] + h@params["r"]["u"] + params["r"]["b"])
+      p = params["zr"]
+      tmp = jnp.tensordot(x,p["w"],[-1,0]) + jnp.tensordot(h,p["u"],[-1,0]) + p["b"]
+      zt,rt = jax.nn.sigmoid(tmp).T
       ht = jnp.tanh(x@params["h"]["w"] + (h*rt)@params["h"]["u"] + params["h"]["b"])      
       h = (1-zt)*h + zt*ht
       return h,h
 
-    out_dims = params["z"]["w"].shape[1]
+    out_dims = params["h"]["b"].shape[0]
     h0 = jnp.zeros(out_dims)
     h,seq = jax.lax.scan(gru_cell,h0,x)
     return seq
@@ -161,30 +162,26 @@ def GRU(params=None):
   if params is None: return init_params
   else: return jax.vmap(layer)
 
-def LSTM(params=None):
+def LSTM(params=None, fast=True):
   '''Long short-term memory (LSTM)'''
-  # wikipedia.org/wiki/Long_short-term_memory#LSTM_with_a_forget_gate
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
-    G = lambda k,i: jax.nn.initializers.glorot_normal()(k,(i,out_dims))
-    k = jax.random.split(key, num=8)
-    return {"f":{"w":G(k[0],in_dims),"u":G(k[1],out_dims),"b":jnp.ones(out_dims)},  # forget gate
-            "i":{"w":G(k[2],in_dims),"u":G(k[3],out_dims),"b":jnp.zeros(out_dims)}, # input gate
-            "o":{"w":G(k[4],in_dims),"u":G(k[5],out_dims),"b":jnp.zeros(out_dims)}, # output gate
-            "g":{"w":G(k[6],in_dims),"u":G(k[7],out_dims),"b":jnp.zeros(out_dims)}} # change gate
+    k = jax.random.split(key, num=2)
+    w_ini = jax.nn.initializers.glorot_normal()
+    return {"w":w_ini(k[0],(in_dims,out_dims,4)),"u":w_ini(k[1],(out_dims,out_dims,4)),
+            "b":jnp.zeros((out_dims,4))}            
 
   def layer(x):
     def lstm_cell(hc,x):
       h,c = hc
-      f_t = jax.nn.sigmoid(x@params["f"]["w"] + h@params["f"]["u"] + params["f"]["b"])
-      i_t = jax.nn.sigmoid(x@params["i"]["w"] + h@params["i"]["u"] + params["i"]["b"])
-      o_t = jax.nn.sigmoid(x@params["o"]["w"] + h@params["o"]["u"] + params["o"]["b"])
-      g_t = jnp.tanh(x@params["g"]["w"] + h@params["g"]["u"] + params["g"]["b"])
-      c_t = f_t * c + i_t * g_t
-      h_t = o_t * jnp.tanh(c_t)
-      return (h_t,c_t),c_t
+      p = params
+      tmp = jnp.tensordot(x,p["w"],[-1,0]) + jnp.tensordot(h,p["u"],[-1,0]) + p["b"]
+      ft, it, ot, gt = tmp.T
+      ct = jax.nn.sigmoid(ft + 1) * c + jax.nn.sigmoid(it) * jnp.tanh(gt)
+      ht = jax.nn.sigmoid(ot) * jnp.tanh(ct)
+      return (ht,ct),ct
 
-    out_dims = params["f"]["w"].shape[1]
+    out_dims = params["b"].shape[0]
     h0 = jnp.zeros(out_dims)
     h,seq = jax.lax.scan(lstm_cell,(h0,h0),x)
     return seq
