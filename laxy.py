@@ -49,8 +49,8 @@ class OPT():
       
     losses = []
     for k in range(steps):
-      if batch_size is not None: loss = self.opt.train_on_batch(subsample(key.get()))
-      else: loss = self.opt.train_on_batch(inputs)
+      if batch_size is not None: loss = self.train_on_batch(subsample(key.get()))
+      else: loss = self.train_on_batch(inputs)
       losses.append(float(loss))
       if (k+1) % (steps//verbose_interval) == 0:
         if verbose: print(k+1, loss)
