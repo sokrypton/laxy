@@ -140,9 +140,11 @@ def GRU(params=None):
     if key is None: key = get_random_key(seed)
     k = jax.random.split(key, num=4)
     w_ini = jax.nn.initializers.glorot_normal()
-    return {"zr":{"w":w_ini(k[0],(in_dims,out_dims,2)),"u":w_ini(k[1],(out_dims,out_dims,2)),
+    return {"zr":{"w":w_ini(k[0],(in_dims,out_dims,2)),
+                  "u":w_ini(k[1],(out_dims,out_dims,2)),
                   "b":jnp.zeros((out_dims,2))},
-            "h": {"w":w_ini(k[2],(in_dims,out_dims)),"u":w_ini(k[3],(out_dims,out_dims)),
+            "h": {"w":w_ini(k[2],(in_dims,out_dims)),
+                  "u":w_ini(k[3],(out_dims,out_dims)),
                   "b":jnp.zeros(out_dims)}}
 
   def layer(x):
@@ -168,7 +170,8 @@ def LSTM(params=None):
     if key is None: key = get_random_key(seed)
     k = jax.random.split(key, num=2)
     w_ini = jax.nn.initializers.glorot_normal()
-    return {"w":w_ini(k[0],(in_dims,out_dims,4)),"u":w_ini(k[1],(out_dims,out_dims,4)),
+    return {"w":w_ini(k[0],(in_dims,out_dims,4)),
+            "u":w_ini(k[1],(out_dims,out_dims,4)),
             "b":jnp.zeros((out_dims,4))}            
 
   def layer(x):
