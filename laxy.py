@@ -42,7 +42,7 @@ class OPT():
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
       key = KEY()
-      def subsample(self, key):
+      def subsample(key):
         idx = jax.random.randint(key, shape=(batch_size,), minval=0, maxval=inputs["x"].shape[0])
         return {k:inputs[k][idx] for k in inputs.keys()}
       subsample = jax.jit(subsample)
