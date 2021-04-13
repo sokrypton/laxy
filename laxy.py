@@ -21,25 +21,42 @@ class KEY():
 
 class OPT():
   def __init__(self, fn, params, lr=1e-3, optimizer=adam):
-    self.k = 0
-    self.opt_init, self.opt_update, self.opt_params = optimizer(step_size=lr)
-    self.opt_state = self.opt_init(params) 
-    self.fn = jax.jit(fn)
-    self.d_fn = jax.value_and_grad(self.fn)
+    self._k = 0
+    self._opt_init, self._opt_update, self._opt_params = optimizer(step_size=lr)
+    self._opt_state = self._opt_init(params)
+
+    # split function into out and loss
+    self._fn_out = jax.jit(lambda p,i: fn(p,i)[0])
+    self._fn_loss = jax.jit(lambda p,i: fn(p,i)[1])
+    self._fn_grad = jax.value_and_grad(lambda p,i: fn(p,i)[1].sum())
 
     def update(k, state, inputs):      
-      loss, grad = self.d_fn(self.opt_params(state), inputs)
-      state = self.opt_update(k, grad, state)
-      return state,loss
-    self.update = jax.jit(update)
+      loss, grad = self._fn_grad(self._opt_params(state), inputs)
+      state = self._opt_update(k, grad, state)
+      return state, loss
+    self._update = jax.jit(update)
 
   def train_on_batch(self, inputs):
-    self.opt_state,loss = self.update(self.k, self.opt_state, inputs)
-    self.k += 1
+    self._opt_state,loss = self._update(self._k, self._opt_state, inputs)
+    self._k += 1
     return loss
   
-  def fit(self, inputs, steps=100, batch_size=None, verbose=True, verbose_interval=10,
-          return_losses=True, seed=None):
+  def set_params(self, params):
+    self._opt_state = self._opt_init(params)
+    
+  def get_params(self):
+    return self._opt_params(self._opt_state)
+  
+  def evaluate(self, inputs):
+    return self._fn_loss(self.get_params(), inputs)
+
+  def predict(self, inputs):
+    return self._fn_out(self.get_params(), inputs)
+    
+  def fit(self, inputs, steps=100, batch_size=None,
+         verbose=True, verbose_interval=10,
+         return_losses=True, seed=None):
+    
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
       key = KEY()
@@ -50,21 +67,13 @@ class OPT():
       
     if return_losses: losses = []
     for k in range(steps):
-      if batch_size is not None: loss = self.train_on_batch(subsample(key.get()))
-      else: loss = self.train_on_batch(inputs)
+      if batch_size is None: loss = self.train_on_batch(inputs)
+      else: loss = self.train_on_batch(subsample(key.get()))
+
       if return_losses: losses.append(float(loss))
       if (k+1) % (steps//verbose_interval) == 0:
         if verbose: print(k+1, loss)
     if return_losses: return losses
-
-  def set_params(self, params):
-    self.opt_state = self.opt_init(params)
-    
-  def get_params(self):
-    return self.opt_params(self.opt_state)
-  
-  def get_loss(self, inputs):
-    return self.fn(self.get_params(), inputs)
   
 #################
 # LAYERS
