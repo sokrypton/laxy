@@ -86,7 +86,14 @@ def STAX(stax_layers, input_shape, key=None, seed=None):
   return _params, _layer
 
 def MRF(params=None):
-  '''markov random field'''
+  '''
+  ----------------------------------------------------
+  markov random field
+  ----------------------------------------------------
+  params = MRF()(L=length, A=alphabet, use_bias=True)
+  output = MRF(params)(input, return_w=False)
+  ----------------------------------------------------
+  '''
   def init_params(L, A, use_bias=True, key=None, seed=None):
     params = {"w":jnp.zeros((L,A,L,A))}
     if use_bias: params["b"] = jnp.zeros((L,A))
@@ -107,7 +114,14 @@ def MRF(params=None):
   else: return layer
 
 def Conv1D(params=None):
-  '''1D convolution'''
+  '''
+  ----------------------------------------------------
+  1D convolution
+  ----------------------------------------------------
+  params = Conv1D()(in_dims, out_dims, win, use_bias=True)
+  output = Conv1D(params)(input, stride=1, padding="SAME")
+  ----------------------------------------------------
+  '''
   def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win))}
@@ -125,32 +139,46 @@ def Conv1D(params=None):
   else: return layer
 
 def Conv2D(params=None):
-  '''2D convolution'''
+  '''
+  ----------------------------------------------------
+  2D convolution
+  ----------------------------------------------------
+  params = Conv2D()(in_dims, out_dims, win, use_bias=True)
+  output = Conv2D(params)(input, stride=1, padding="SAME")
+  ----------------------------------------------------
+  '''
   def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(out_dims,in_dims,win,win))}
     if use_bias: params["b"] = jnp.zeros(out_dims)
     return params
       
-  def layer(x, use_bias=True, stride=1, padding="SAME"):
+  def layer(x, stride=1, padding="SAME"):
     x = x.transpose([0,3,1,2]) # (batch, channels, row, col)
     y = jax.lax.conv(x,params["w"],(stride,stride),padding=padding) # (batch, filters, row, col)
     y = y.transpose([0,2,3,1]) # (batch, row, col, filters)
-    if use_bias: y += params["b"]
+    if "b" in params: y += params["b"]
     return y
   
   if params is None: return init_params
   else: return layer
 
 def Dense(params=None):
-  '''dense or linear layer'''
+  '''
+  ----------------------------------------------------
+  dense
+  ----------------------------------------------------
+  params = Dense()(in_dims, out_dims, use_bias=True)
+  output = Dense(params)(input)
+  ----------------------------------------------------
+  '''
   def init_params(in_dims, out_dims, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
     params = {"w":jax.nn.initializers.glorot_normal()(key,(in_dims,out_dims))}
     if use_bias: params["b"] = jnp.zeros(out_dims)
     return params
   
-  def layer(x, use_bias=True):
+  def layer(x):
     y = x @ params["w"]
     if "b" in params: y += params["b"]
     return y
@@ -159,7 +187,14 @@ def Dense(params=None):
   else: return layer
 
 def GRU(params=None):
-  '''Gated recurrent unit (GRU)'''
+  '''
+  ----------------------------------------------------
+  Gated recurrent unit (GRU)
+  ----------------------------------------------------
+  params = GRU()(in_dims, out_dims)
+  output = GRU(params)(input)
+  ----------------------------------------------------
+  '''
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
     k = jax.random.split(key, num=4)
@@ -189,7 +224,14 @@ def GRU(params=None):
   else: return jax.vmap(layer)
 
 def LSTM(params=None):
-  '''Long short-term memory (LSTM)'''
+  '''
+  ----------------------------------------------------
+  Long short-term memory (LSTM)
+  ----------------------------------------------------
+  params = LSTM()(in_dims, out_dims)
+  output = LSTM(params)(input)
+  ----------------------------------------------------
+  '''
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
     k = jax.random.split(key, num=2)
@@ -197,7 +239,7 @@ def LSTM(params=None):
     return {"w":w_ini(k[0],(in_dims,out_dims,4)),
             "u":w_ini(k[1],(out_dims,out_dims,4)),
             "b":jnp.zeros((out_dims,4))}            
-
+  
   def layer(x):
     def lstm_cell(hc,x):
       h,c = hc
