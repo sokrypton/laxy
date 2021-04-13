@@ -65,20 +65,19 @@ class OPT():
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
       key = KEY()
+      idx = jnp.arange(len(jax.tree_util.tree_leaves(inputs)[0]))
       def subsample(inp, key):
-        maxval = inp["x"].shape[0]
-        idx = jax.random.randint(key, shape=(batch_size,), minval=0, maxval=maxval)
-        return {k:inp[k][idx] for k in inp.keys()}
+        sub_idx = jax.random.choice(key, idx, shape=(batch_size,), replace=False)
+        return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
       subsample = jax.jit(subsample)
-      
+
     if return_losses: losses = []
     for k in range(steps):
       if batch_size is None: loss = self.train_on_batch(inputs)
       else: loss = self.train_on_batch(subsample(inputs, key.get()))
-
       if return_losses: losses.append(float(loss))
-      if (k+1) % (steps//verbose_interval) == 0:
-        if verbose: print(k+1, loss)
+      if verbose and (k+1) % (steps//verbose_interval) == 0:
+        print(k+1, loss)
     if return_losses: return losses
 
   
