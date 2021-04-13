@@ -6,6 +6,9 @@ from jax.experimental.optimizers import adam
 def get_random_key(seed=None):
   if seed is None: seed = random.randint(0,2147483647)
   return jax.random.PRNGKey(seed) 
+
+def freeze(params):
+  return jax.tree_util.tree_map(lambda x: jax.lax.stop_gradient(x), params)
   
 class KEY():
   '''generate random key'''
