@@ -87,12 +87,10 @@ def STAX(stax_layers, input_shape, key=None, seed=None):
 
 def MRF(params=None):
   '''
-  ----------------------------------------------------
   markov random field
   ----------------------------------------------------
   params = MRF()(L=length, A=alphabet, use_bias=True)
   output = MRF(params)(input, return_w=False)
-  ----------------------------------------------------
   '''
   def init_params(L, A, use_bias=True, key=None, seed=None):
     params = {"w":jnp.zeros((L,A,L,A))}
@@ -115,12 +113,10 @@ def MRF(params=None):
 
 def Conv1D(params=None):
   '''
-  ----------------------------------------------------
   1D convolution
   ----------------------------------------------------
   params = Conv1D()(in_dims, out_dims, win, use_bias=True)
   output = Conv1D(params)(input, stride=1, padding="SAME")
-  ----------------------------------------------------
   '''
   def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
@@ -140,12 +136,10 @@ def Conv1D(params=None):
 
 def Conv2D(params=None):
   '''
-  ----------------------------------------------------
   2D convolution
   ----------------------------------------------------
   params = Conv2D()(in_dims, out_dims, win, use_bias=True)
   output = Conv2D(params)(input, stride=1, padding="SAME")
-  ----------------------------------------------------
   '''
   def init_params(in_dims, out_dims, win, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
@@ -165,12 +159,10 @@ def Conv2D(params=None):
 
 def Dense(params=None):
   '''
-  ----------------------------------------------------
   dense
   ----------------------------------------------------
   params = Dense()(in_dims, out_dims, use_bias=True)
   output = Dense(params)(input)
-  ----------------------------------------------------
   '''
   def init_params(in_dims, out_dims, use_bias=True, key=None, seed=None):
     if key is None: key = get_random_key(seed)
@@ -188,12 +180,10 @@ def Dense(params=None):
 
 def GRU(params=None):
   '''
-  ----------------------------------------------------
   Gated recurrent unit (GRU)
   ----------------------------------------------------
   params = GRU()(in_dims, out_dims)
   output = GRU(params)(input)
-  ----------------------------------------------------
   '''
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
@@ -225,12 +215,10 @@ def GRU(params=None):
 
 def LSTM(params=None):
   '''
-  ----------------------------------------------------
   Long short-term memory (LSTM)
   ----------------------------------------------------
   params = LSTM()(in_dims, out_dims)
   output = LSTM(params)(input)
-  ----------------------------------------------------
   '''
   def init_params(in_dims, out_dims, key=None, seed=None):
     if key is None: key = get_random_key(seed)
