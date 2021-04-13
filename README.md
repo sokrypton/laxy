@@ -1,5 +1,5 @@
 # laxy
-This is my "lazy" wrapper around jax, intended to minimize extra work in setting up optimization for simple custom models. For more advanced deep-nn models, I'd recommend libraries like [Haiku](https://github.com/deepmind/dm-haiku), [Flax](https://github.com/google/flax), or [Trax](https://github.com/google/trax).
+This is my "lazy" wrapper around jax, intended to minimize extra work in setting up optimization for simple custom models. For more advanced deep-nn models, I'd recommend libraries like [Haiku](https://github.com/deepmind/dm-haiku), [Elegy](https://github.com/poets-ai/elegy), [Flax](https://github.com/google/flax), or [Trax](https://github.com/google/trax).
 
 #### Philosophy: "Optimizing a simple model shouldn't require more than 2 lines of code"
 ```python
