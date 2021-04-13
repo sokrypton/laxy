@@ -65,20 +65,22 @@ class OPT():
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
       key = KEY()
-      def subsample(key):
-        idx = jax.random.randint(key, shape=(batch_size,), minval=0, maxval=inputs["x"].shape[0])
-        return {k:inputs[k][idx] for k in inputs.keys()}
+      def subsample(inp, key):
+        maxval = inp["x"].shape[0]
+        idx = jax.random.randint(key, shape=(batch_size,), minval=0, maxval=maxval)
+        return {k:inp[k][idx] for k in inp.keys()}
       subsample = jax.jit(subsample)
       
     if return_losses: losses = []
     for k in range(steps):
       if batch_size is None: loss = self.train_on_batch(inputs)
-      else: loss = self.train_on_batch(subsample(key.get()))
+      else: loss = self.train_on_batch(subsample(inputs, key.get()))
 
       if return_losses: losses.append(float(loss))
       if (k+1) % (steps//verbose_interval) == 0:
         if verbose: print(k+1, loss)
     if return_losses: return losses
+
   
 #################
 # LAYERS
