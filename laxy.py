@@ -20,15 +20,15 @@ class KEY():
       return subkey
 
 class OPT():
-  def __init__(self, fn, params, lr=1e-3, optimizer=adam):
+  def __init__(self, model, params, lr=1e-3, optimizer=adam):
     self._k = 0
     self._opt_init, self._opt_update, self._opt_params = optimizer(step_size=lr)
     self._opt_state = self._opt_init(params)
 
     # split function into out and loss
-    self._fn_out = jax.jit(lambda p,i: fn(p,i)[0])
-    self._fn_loss = jax.jit(lambda p,i: fn(p,i)[1])
-    self._fn_grad = jax.value_and_grad(lambda p,i: fn(p,i)[1].sum())
+    self._fn_out = jax.jit(lambda p,i: model(p,i)[0])
+    self._fn_loss = jax.jit(lambda p,i: model(p,i)[1])
+    self._fn_grad = jax.value_and_grad(lambda p,i: model(p,i)[1].sum())
 
     def update(k, state, inputs):      
       loss, grad = self._fn_grad(self._opt_params(state), inputs)
@@ -54,8 +54,8 @@ class OPT():
     return self._fn_out(self.get_params(), inputs)
     
   def fit(self, inputs, steps=100, batch_size=None,
-         verbose=True, verbose_interval=10,
-         return_losses=True, seed=None):
+          verbose=True, verbose_interval=10,
+          return_losses=True, seed=None):
     
     if batch_size is not None:
       # TODO: generalize batching to subset of inputs
