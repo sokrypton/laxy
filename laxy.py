@@ -4,14 +4,16 @@ import random
 from jax.experimental.optimizers import adam
 
 def get_random_key(seed=None):
+  '''get random key'''
   if seed is None: seed = random.randint(0,2147483647)
   return jax.random.PRNGKey(seed) 
 
 def freeze(params):
+  '''freeze provided parameters'''
   return jax.tree_util.tree_map(lambda x: jax.lax.stop_gradient(x), params)
   
 class KEY():
-  '''generate random key'''
+  '''random key generator'''
   def __init__(self, seed=None):
     self.key = get_random_key(seed)    
   def get(self, num=1):
@@ -82,15 +84,16 @@ class OPT():
 # LAYERS
 #################
 
-def STAX(stax_layers, input_shape, key=None, seed=None):
+def STAX(model, input_shape, key=None, seed=None):
+  '''decompose stax model/layer(s) into params and model'''
   if key is None: key = get_random_key(seed)
-  _init_params, _layer = stax_layers
+  _init_params, _model = stax_model
   _params = _init_params(key, input_shape)[1]
-  return _params, _layer
+  return _model, _layer
 
 def MRF(params=None):
   '''
-  markov random field
+  markov random field layer
   ----------------------------------------------------
   params = MRF()(L=length, A=alphabet, use_bias=True)
   output = MRF(params)(input, return_w=False)
@@ -116,7 +119,7 @@ def MRF(params=None):
 
 def Conv1D(params=None):
   '''
-  1D convolution
+  1D convolutional layer
   ----------------------------------------------------
   params = Conv1D()(in_dims, out_dims, win, use_bias=True)
   output = Conv1D(params)(input, stride=1, padding="SAME")
@@ -139,7 +142,7 @@ def Conv1D(params=None):
 
 def Conv2D(params=None):
   '''
-  2D convolution
+  2D convolutional layer
   ----------------------------------------------------
   params = Conv2D()(in_dims, out_dims, win, use_bias=True)
   output = Conv2D(params)(input, stride=1, padding="SAME")
@@ -162,7 +165,7 @@ def Conv2D(params=None):
 
 def Dense(params=None):
   '''
-  dense
+  dense or linear layer
   ----------------------------------------------------
   params = Dense()(in_dims, out_dims, use_bias=True)
   output = Dense(params)(input)
@@ -183,7 +186,7 @@ def Dense(params=None):
 
 def GRU(params=None):
   '''
-  Gated recurrent unit (GRU)
+  Gated recurrent unit (GRU) layer
   ----------------------------------------------------
   params = GRU()(in_dims, out_dims)
   output = GRU(params)(input)
@@ -218,7 +221,7 @@ def GRU(params=None):
 
 def LSTM(params=None):
   '''
-  Long short-term memory (LSTM)
+  Long short-term memory (LSTM) layer
   ----------------------------------------------------
   params = LSTM()(in_dims, out_dims)
   output = LSTM(params)(input)
