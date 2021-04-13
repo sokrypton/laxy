@@ -87,7 +87,7 @@ class OPT():
 def STAX(model, input_shape, key=None, seed=None):
   '''decompose stax model/layer(s) into params and model'''
   if key is None: key = get_random_key(seed)
-  _init_params, _model = stax_model
+  _init_params, _model = model
   _params = _init_params(key, input_shape)[1]
   return _model, _layer
 
