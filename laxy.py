@@ -261,3 +261,38 @@ def LSTM(params=None):
 
   if params is None: return init_params
   else: return jax.vmap(layer)
+
+def Attention(params=None):
+  '''
+  Multi-headed attention layer
+  ----------------------------------------------------
+  params = Dense()(in_dims, out_dims=None, num_heads=5, head_dims=100)
+  output = Dense(params)(input, mask=None)
+  '''
+  def init_params(in_dims, out_dims=None, num_heads=5, head_dims=100, key=None, seed=None):
+    if out_dims is None: out_dims = in_dims
+    if key is None: key = get_random_key(seed)
+    k = jax.random.split(key,4)
+    w_ini = jax.nn.initializers.glorot_normal()
+    w_dims = (num_heads,in_dims,head_dims)
+    params = {"q":{"w":w_ini(k[0],w_dims)},
+              "k":{"w":w_ini(k[1],w_dims)},
+              "v":{"w":w_ini(k[2],w_dims)},
+              "d":{"w":w_ini(k[3],(num_heads,head_dims,out_dims))}}
+    return params
+  
+  def layer(x, mask=None):
+    head_dims = params["q"]["w"].shape[-1]
+    q = x @ params["q"]["w"]
+    k = x @ params["k"]["w"]
+    v = x @ params["v"]["w"]
+    att_logits = jnp.einsum("hir,hjr->hij",q,k) / jnp.sqrt(head_dims)
+    if mask is not None:
+      att_logits = att_logits * mask - 1e10 * (1-mask)
+    att = jax.nn.softmax(att_logits)
+    o = jnp.einsum("hij,hjr->ihr",att,v)
+    d = jnp.einsum("ihr,hrb->ib",o,params["d"]["w"])
+    return d
+
+  if params is None: return init_params
+  else: return jax.vmap(layer)
