@@ -57,29 +57,38 @@ class OPT():
 
   def predict(self, inputs):
     return self._fn_out(self.get_params(), inputs)
+  
+  def _fit_batch(self, inputs, steps, batch_size, verbose=True, return_losses=True, seed=None):
+    # TODO: generalize batching to subset of inputs    
+    N = len(jax.tree_util.tree_leaves(inputs)[0])
+    if N < batch_size:
+      if verbose: print(f"WARNING: (N:{N} < batch_size:{batch_size})")
+      return self.fit(inputs, steps, verbose=verbose, return_losses=return_losses)
     
-  def fit(self, inputs, steps=100, batch_size=None,
-          verbose=True, verbose_interval=10,
-          return_losses=True, seed=None):
+    key,idx = KEY(), jnp.arange(N)
+    def subsample(inp, key):
+      sub_idx = jax.random.choice(key, idx, shape=(batch_size,), replace=False)
+      return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
+    subsample = jax.jit(subsample)
     
-    if batch_size is not None:
-      # TODO: generalize batching to subset of inputs
-      key = KEY()
-      idx = jnp.arange(len(jax.tree_util.tree_leaves(inputs)[0]))
-      def subsample(inp, key):
-        sub_idx = jax.random.choice(key, idx, shape=(batch_size,), replace=False)
-        return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
-      subsample = jax.jit(subsample)
-
     if return_losses: losses = []
     for k in range(steps):
-      if batch_size is None: loss = self.train_on_batch(inputs)
-      else: loss = self.train_on_batch(subsample(inputs, key.get()))
+      loss = self.train_on_batch(subsample(inputs, key.get()))
       if return_losses: losses.append(float(loss))
-      if verbose and (k+1) % (steps//verbose_interval) == 0:
-        print(k+1, loss)
+      if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
     if return_losses: return losses
+    
+  def fit(self, inputs, steps=100, batch_size=None, verbose=True, return_losses=True, seed=None):
 
+    if batch_size is not None:
+      return self._fit_batch(inputs, steps, batch_size, verbose, return_losses, seed)
+      
+    if return_losses: losses = []
+    for k in range(steps):
+      loss = self.train_on_batch(inputs)
+      if return_losses: losses.append(float(loss))
+      if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
+    if return_losses: return losses
   
 #################
 # LAYERS
