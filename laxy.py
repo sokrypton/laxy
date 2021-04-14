@@ -262,6 +262,26 @@ def LSTM(params=None):
   if params is None: return init_params
   else: return jax.vmap(layer)
 
+def add_emb(x, k=None, concat=True):
+  '''
+  concatenate (or add) sincos positional embedding
+  ----------------------------------------------------
+  output = add_emb(input, k=None, concat=True)
+  '''
+  def sincos_emb(i,k):
+    power = jnp.arange(0,k,2)/k
+    seq_pos = jnp.arange(1,i+1)
+    index = seq_pos[None,:,None]/(10000**power)
+    pos_emb = jnp.stack((jnp.sin(index), jnp.cos(index)),-1)
+    return jnp.reshape(pos_emb,[i,k])
+  n,i,a = x.shape
+  if concat:
+    if k is None: k = a
+    pos_emb = jnp.broadcast_to(sincos_emb(i,k),[n,i,k])
+    return jnp.concatenate([x,pos_emb],-1)
+  else:
+    return x + sincos_emb(i,a)
+  
 def Attention(params=None):
   '''
   Multi-headed attention layer
