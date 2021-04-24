@@ -65,7 +65,7 @@ class OPT():
       if verbose: print(f"WARNING: (N:{N} < batch_size:{batch_size})")
       return self.fit(inputs, steps, verbose=verbose, return_losses=return_losses)
     
-    key,idx = KEY(), jnp.arange(N)
+    key,idx = KEY(seed=seed), jnp.arange(N)
     def subsample(inp, key):
       sub_idx = jax.random.choice(key, idx, shape=(batch_size,), replace=False)
       return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
