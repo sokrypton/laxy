@@ -19,15 +19,28 @@ Examples:
 * [linear regression](https://colab.research.google.com/github/sokrypton/laxy/blob/main/laxy_example.ipynb)
 * [gremlin](https://colab.research.google.com/github/sokrypton/laxy/blob/main/gremlin_jax.ipynb)
 
-# FAQ
+## FAQ
 * How do I save/load weights?
   ```python
   # save
   weights = opt.get_params()
-  np.save("weights.npy",weights)
+  jnp.save("weights.npy",weights)
   # load
-  weights = np.load("weights.npy",allow_pickle=True)
+  weights = jnp.load("weights.npy",allow_pickle=True)
   opt.set_params(weights)
+  ```
+* Can I use neural networks in my model?
+  ```python
+  from jax.experimental import stax
+  stax_layers = stax.serial(stax.Dense(5),stax.Elu,stax.Dense(1))
+  nn_params, nn_layers = laxy.STAX(stax_layers, input_shape=(None,10))
+
+  def model(params, inputs):
+    out = nn_layers(params["nn"], inputs["x"]) + params["a"]
+    loss = jnp.square(out - inputs["y"]).sum()
+    return out, loss
+    
+  opt = laxy.OPT(model, params={"nn":nn_params,"a":1.0})
   ```
 * Can I freeze a subset of weights?
 
