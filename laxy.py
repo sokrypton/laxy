@@ -11,6 +11,10 @@ def get_random_key(seed=None):
 def freeze(params):
   '''freeze provided parameters'''
   return jax.tree_util.tree_map(lambda x: jax.lax.stop_gradient(x), params)
+
+def freeze_cond(cond, params):
+  '''freeze provided parameters given [cond]ition'''
+  return jax.lax.cond(cond, lambda _:freeze(params), lambda _:params, None)
   
 class KEY():
   '''random key generator'''
