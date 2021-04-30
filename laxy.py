@@ -62,7 +62,7 @@ class OPT():
   def predict(self, inputs):
     return self._fn_out(self.get_params(), inputs)
   
-  def _fit_batch(self, inputs, steps, batch_size, verbose=True, return_losses=True, seed=None):
+  def _fit_batch(self, inputs, steps, batch_size, verbose=True, return_losses=False, seed=None):
     # TODO: generalize batching to subset of inputs    
     N = len(jax.tree_util.tree_leaves(inputs)[0])
     if N < batch_size:
@@ -82,7 +82,7 @@ class OPT():
       if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
     if return_losses: return losses
     
-  def fit(self, inputs, steps=100, batch_size=None, verbose=True, return_losses=True, seed=None):
+  def fit(self, inputs, steps=100, batch_size=None, verbose=True, return_losses=False, seed=None):
 
     if batch_size is not None:
       return self._fit_batch(inputs, steps, batch_size, verbose, return_losses, seed)
