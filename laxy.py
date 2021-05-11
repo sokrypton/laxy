@@ -76,10 +76,14 @@ class OPT():
     subsample = jax.jit(subsample)
     
     if return_losses: losses = []
+    if verbose: loss_tot = 0
     for k in range(steps):
       loss = self.train_on_batch(subsample(inputs, key.get()))
+      if verbose: loss_tot += loss
       if return_losses: losses.append(float(loss))
-      if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
+      if verbose and (k+1) % (steps//10) == 0:
+        print(k+1, (loss_tot)/(steps//10))
+        loss_tot = 0
     if return_losses: return losses
     
   def fit(self, inputs, steps=100, batch_size=None, verbose=True, return_losses=False, seed=None):
