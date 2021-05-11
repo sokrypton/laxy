@@ -65,10 +65,10 @@ class OPT():
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
                  verbose=True, return_losses=False, seed=None):
     
-    if batch_inputs is None:
-      nonbatch_inputs, batch_inputs = type(inputs)(), inputs
-    else:
-      nonbatch_inputs = inputs
+    # spliting inputs into nonbatched and batched
+    if batch_inputs is None: nonbatch_inputs, batch_inputs = type(inputs)(), inputs
+    elif inputs is None: nonbatch_inputs = type(batch_inputs)()
+    else: nonbatch_inputs = inputs
       
     N = len(jax.tree_util.tree_leaves(batch_inputs)[0])
     if N < batch_size:
@@ -84,10 +84,10 @@ class OPT():
     if return_losses: losses = []
     if verbose: loss_tot = 0
     for k in range(steps):
-      inputs = subsample(batch_inputs, key.get())
-      if type(inputs) is dict: inputs.update(nonbatch_inputs)
-      if type(inputs) is list: inputs = inputs + nonbatch_inputs
-      if type(inputs) is tuple: inputs = inputs + nonbatch_inputs
+      inp = subsample(batch_inputs, key.get())
+      if type(inp) is dict: inp.update(nonbatch_inputs)
+      if type(inp) is list: inp += nonbatch_inputs
+      if type(inp) is tuple: inp += nonbatch_inputs
       
       loss = self.train_on_batch(inputs)
       if verbose: loss_tot += loss
