@@ -89,7 +89,7 @@ class OPT():
       if type(inp) is list: inp += nonbatch_inputs
       if type(inp) is tuple: inp += nonbatch_inputs
       
-      loss = self.train_on_batch(inputs)
+      loss = self.train_on_batch(inp)
       if verbose: loss_tot += loss
       if return_losses: losses.append(float(loss))
       if verbose and (k+1) % (steps//10) == 0:
