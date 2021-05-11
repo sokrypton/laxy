@@ -85,7 +85,7 @@ class OPT():
     if verbose: loss_tot = 0
     for k in range(steps):
       inputs = subsample(batch_inputs, key.get())
-      if type(inputs) is dict: inputs = inputs.update(nonbatch_inputs)
+      if type(inputs) is dict: inputs.update(nonbatch_inputs)
       if type(inputs) is list: inputs = inputs + nonbatch_inputs
       if type(inputs) is tuple: inputs = inputs + nonbatch_inputs
       
