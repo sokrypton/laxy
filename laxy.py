@@ -62,9 +62,15 @@ class OPT():
   def predict(self, inputs):
     return self._fn_out(self.get_params(), inputs)
   
-  def _fit_batch(self, inputs, steps, batch_size, verbose=True, return_losses=False, seed=None):
-    # TODO: generalize batching to subset of inputs    
-    N = len(jax.tree_util.tree_leaves(inputs)[0])
+  def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
+                 verbose=True, return_losses=False, seed=None):
+    
+    if batch_inputs is None:
+      nonbatch_inputs, batch_inputs = type(inputs)(), inputs
+    else:
+      nonbatch_inputs = inputs
+      
+    N = len(jax.tree_util.tree_leaves(batch_inputs)[0])
     if N < batch_size:
       if verbose: print(f"WARNING: (N:{N} < batch_size:{batch_size})")
       return self.fit(inputs, steps, verbose=verbose, return_losses=return_losses)
@@ -78,18 +84,25 @@ class OPT():
     if return_losses: losses = []
     if verbose: loss_tot = 0
     for k in range(steps):
-      loss = self.train_on_batch(subsample(inputs, key.get()))
+      inputs = subsample(batch_inputs, key.get())
+      if type(inputs) is dict: inputs = inputs.update(nonbatch_inputs)
+      if type(inputs) is list: inputs = inputs + nonbatch_inputs
+      if type(inputs) is tuple: inputs = inputs + nonbatch_inputs
+      
+      loss = self.train_on_batch(inputs)
       if verbose: loss_tot += loss
       if return_losses: losses.append(float(loss))
       if verbose and (k+1) % (steps//10) == 0:
-        print(k+1, (loss_tot)/(steps//10))
+        print(k+1, loss_tot/(steps//10))
         loss_tot = 0
     if return_losses: return losses
     
-  def fit(self, inputs, steps=100, batch_size=None, verbose=True, return_losses=False, seed=None):
+  def fit(self, inputs, steps=100, batch_size=None, batch_inputs=None,
+          verbose=True, return_losses=False, seed=None):
 
     if batch_size is not None:
-      return self._fit_batch(inputs, steps, batch_size, verbose, return_losses, seed)
+      return self._fit_batch(inputs, steps, batch_size, batch_inputs,
+                             verbose, return_losses, seed)
       
     if return_losses: losses = []
     for k in range(steps):
