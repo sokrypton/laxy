@@ -78,12 +78,8 @@ class OPT():
     if return_losses: return losses
 
   def _add_key(self, inputs):
-    if isinstance(inputs, dict):
-      if "key" in inputs:
-        if isinstance(inputs["key"], jnp.ndarray):
-          if inputs["key"].ndim == 2: inputs["key"] = self._key.get(inputs["key"].shape[0])
-          else: inputs["key"] = self._key.get()            
-      else: inputs["key"] = self._key.get()
+    if isinstance(inputs, dict) and "key" not in inputs:
+      inputs["key"] = self._key.get()
     return inputs
 
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
@@ -111,9 +107,9 @@ class OPT():
     if verbose: loss_tot = 0
     for k in range(steps):
       inp = subsample(batch_inputs, key.get())
-      if type(inp) is dict: inp.update(nonbatch_inputs)
-      if type(inp) is list: inp += nonbatch_inputs
-      if type(inp) is tuple: inp += nonbatch_inputs
+      if isinstance(inp, dict): inp.update(nonbatch_inputs)
+      if isinstance(inp, list): inp += nonbatch_inputs
+      if isinstance(inp, tuple): inp += nonbatch_inputs
       
       loss = self.train_on_batch(inp)
       if verbose: loss_tot += loss
