@@ -29,8 +29,9 @@ class KEY():
       return subkey
 
 class OPT():
-  def __init__(self, model, params, lr=1e-3, optimizer=adam):
+  def __init__(self, model, params, lr=1e-3, optimizer=adam, seed=None):
     self._k = 0
+    self._key = KEY(seed)
     self._opt_init, self._opt_update, self._opt_params = optimizer(step_size=lr)
     self._opt_state = self._opt_init(params)
 
@@ -46,6 +47,11 @@ class OPT():
     self._update = jax.jit(update)
 
   def train_on_batch(self, inputs):
+    if type(inputs) is dict:
+      if "key" in inputs and inputs["key"].ndim == 2:
+        inputs["key"] = self._key.get(inputs["key"].shape[0])
+      else:
+        inputs["key"] = self._key.get()
     self._opt_state,loss = self._update(self._k, self._opt_state, inputs)
     self._k += 1
     return loss
@@ -64,6 +70,7 @@ class OPT():
   
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
                  verbose=True, return_losses=False, seed=None):
+    # TODO: define based on epochs
     
     # spliting inputs into nonbatched and batched
     if batch_inputs is None: nonbatch_inputs, batch_inputs = type(inputs)(), inputs
@@ -75,7 +82,7 @@ class OPT():
       if verbose: print(f"WARNING: (N:{N} < batch_size:{batch_size})")
       return self.fit(inputs, steps, verbose=verbose, return_losses=return_losses)
     
-    key,idx = KEY(seed=seed), jnp.arange(N)
+    key, idx = KEY(seed=seed), jnp.arange(N)
     def subsample(inp, key):
       sub_idx = jax.random.choice(key, idx, shape=(batch_size,), replace=False)
       return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
