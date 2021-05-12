@@ -42,6 +42,24 @@ Examples:
     
   opt = laxy.OPT(model, params={"nn":nn_params,"a":1.0})
   ```
+* Can I use jax.random variables?
+
+  A random key is automatically added to the `inputs` dict at each optimization step.
+  The seed for this key is set at `laxy.OPT(model, seed=0)`
+  ```python
+  def model(params, inputs):
+    out = inputs["x"] * params["m"] + jax.random.normal(inputs["key"],(1,))
+    loss = jnp.square(inputs["y"] - out)
+    return out, loss
+  ```
+  More than one key?
+  ```python
+  def model(params, inputs):
+    keys = jax.random.split(inputs["key"],2)
+    out = inputs["x"] * params["m"] + jax.random.normal(keys[0],(1,))
+    loss = jnp.square(inputs["y"] - out) + jax.random.uniform(keys[1],(1,))
+    return out, loss
+  ```
 * Can I freeze a subset of weights?
 
   Freeze forever:
