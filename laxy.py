@@ -47,15 +47,10 @@ class OPT():
     self._update = jax.jit(update)
 
   def train_on_batch(self, inputs):
-    if type(inputs) is dict:
-      if "key" in inputs and inputs["key"].ndim == 2:
-        inputs["key"] = self._key.get(inputs["key"].shape[0])
-      else:
-        inputs["key"] = self._key.get()
-    self._opt_state,loss = self._update(self._k, self._opt_state, inputs)
+    self._opt_state,loss = self._update(self._k, self._opt_state, self._add_key(inputs))
     self._k += 1
     return loss
-  
+    
   def set_params(self, params):
     self._opt_state = self._opt_init(params)
     
@@ -63,15 +58,37 @@ class OPT():
     return self._opt_params(self._opt_state)
   
   def evaluate(self, inputs):
-    return self._fn_loss(self.get_params(), inputs)
+    return self._fn_loss(self.get_params(), self._add_key(inputs))
 
   def predict(self, inputs):
-    return self._fn_out(self.get_params(), inputs)
+    return self._fn_out(self.get_params(), self._add_key(inputs))
   
+  def fit(self, inputs, steps=100, batch_size=None, batch_inputs=None,
+          verbose=True, return_losses=False, seed=None):
+
+    if batch_size is not None:
+      return self._fit_batch(inputs, steps, batch_size, batch_inputs,
+                             verbose, return_losses, seed)
+      
+    if return_losses: losses = []
+    for k in range(steps):
+      loss = self.train_on_batch(inputs)
+      if return_losses: losses.append(float(loss))
+      if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
+    if return_losses: return losses
+
+  def _add_key(self, inputs):
+    if type(inputs) is dict:
+      if "key" in inputs and inputs["key"].ndim == 2:
+        inputs["key"] = self._key.get(inputs["key"].shape[0])
+      else: inputs["key"] = self._key.get()
+    return inputs
+
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
                  verbose=True, return_losses=False, seed=None):
+    #####################################
     # TODO: define based on epochs
-    
+    #####################################
     # spliting inputs into nonbatched and batched
     if batch_inputs is None: nonbatch_inputs, batch_inputs = type(inputs)(), inputs
     elif inputs is None: nonbatch_inputs = type(batch_inputs)()
@@ -103,21 +120,7 @@ class OPT():
         print(k+1, loss_tot/(steps//10))
         loss_tot = 0
     if return_losses: return losses
-    
-  def fit(self, inputs, steps=100, batch_size=None, batch_inputs=None,
-          verbose=True, return_losses=False, seed=None):
-
-    if batch_size is not None:
-      return self._fit_batch(inputs, steps, batch_size, batch_inputs,
-                             verbose, return_losses, seed)
       
-    if return_losses: losses = []
-    for k in range(steps):
-      loss = self.train_on_batch(inputs)
-      if return_losses: losses.append(float(loss))
-      if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
-    if return_losses: return losses
-  
 #################
 # LAYERS
 #################
