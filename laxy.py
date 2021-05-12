@@ -3,30 +3,9 @@ import jax.numpy as jnp
 import random
 from jax.experimental.optimizers import adam
 
-def get_random_key(seed=None):
-  '''get random key'''
-  if seed is None: seed = random.randint(0,2147483647)
-  return jax.random.PRNGKey(seed) 
-
-def freeze(params):
-  '''freeze provided parameters'''
-  return jax.tree_util.tree_map(lambda x: jax.lax.stop_gradient(x), params)
-
-def freeze_cond(cond, params):
-  '''freeze provided parameters given [cond]ition'''
-  return jax.lax.cond(cond, lambda _:freeze(params), lambda _:params, None)
-  
-class KEY():
-  '''random key generator'''
-  def __init__(self, seed=None):
-    self.key = get_random_key(seed)    
-  def get(self, num=1):
-    if num > 1:
-      self.key, *subkeys = jax.random.split(self.key, num=(num+1))
-      return subkeys
-    else:
-      self.key, subkey = jax.random.split(self.key)
-      return subkey
+#################
+# OPT function
+#################
 
 class OPT():
   def __init__(self, model, params, lr=1e-3, optimizer=adam, seed=None):
@@ -47,29 +26,20 @@ class OPT():
     self._update = jax.jit(update)
 
   def train_on_batch(self, inputs):
-    self._opt_state,loss = self._update(self._k, self._opt_state, self._add_key(inputs))
+    self._opt_state, loss = self._update(self._k, self._opt_state, self._add_key(inputs))
     self._k += 1
     return loss
     
-  def set_params(self, params):
-    self._opt_state = self._opt_init(params)
-    
-  def get_params(self):
-    return self._opt_params(self._opt_state)
-  
-  def evaluate(self, inputs):
-    return self._fn_loss(self.get_params(), self._add_key(inputs))
-
-  def predict(self, inputs):
-    return self._fn_out(self.get_params(), self._add_key(inputs))
+  def set_params(self, params): self._opt_state = self._opt_init(params)
+  def get_params(self): return self._opt_params(self._opt_state)
+  def evaluate(self, inputs): return self._fn_loss(self.get_params(), self._add_key(inputs))
+  def predict(self, inputs): return self._fn_out(self.get_params(), self._add_key(inputs))
   
   def fit(self, inputs, steps=100, batch_size=None, batch_inputs=None,
           verbose=True, return_losses=False, seed=None):
-
     if batch_size is not None:
       return self._fit_batch(inputs, steps, batch_size, batch_inputs,
                              verbose, return_losses, seed)
-      
     if return_losses: losses = []
     for k in range(steps):
       loss = self.train_on_batch(inputs)
@@ -82,11 +52,9 @@ class OPT():
       inputs["key"] = self._key.get()
     return inputs
 
+  # TODO, clean up _fit_batch
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
                  verbose=True, return_losses=False, seed=None):
-    #####################################
-    # TODO: define based on epochs
-    #####################################
     # spliting inputs into nonbatched and batched
     if batch_inputs is None: nonbatch_inputs, batch_inputs = type(inputs)(), inputs
     elif inputs is None: nonbatch_inputs = type(batch_inputs)()
@@ -119,6 +87,35 @@ class OPT():
         loss_tot = 0
     if return_losses: return losses
       
+#################
+# UTILS
+#################
+
+def get_random_key(seed=None):
+  '''get random key'''
+  if seed is None: seed = random.randint(0,2147483647)
+  return jax.random.PRNGKey(seed) 
+
+def freeze(params):
+  '''freeze provided parameters'''
+  return jax.tree_util.tree_map(lambda x: jax.lax.stop_gradient(x), params)
+
+def freeze_cond(cond, params):
+  '''freeze provided parameters given [cond]ition'''
+  return jax.lax.cond(cond, lambda _:freeze(params), lambda _:params, None)
+  
+class KEY():
+  '''random key generator'''
+  def __init__(self, seed=None):
+    self.key = get_random_key(seed)    
+  def get(self, num=1):
+    if num > 1:
+      self.key, *subkeys = jax.random.split(self.key, num=(num+1))
+      return subkeys
+    else:
+      self.key, subkey = jax.random.split(self.key)
+      return subkey
+
 #################
 # LAYERS
 #################
