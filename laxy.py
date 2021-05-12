@@ -78,7 +78,7 @@ class OPT():
     if return_losses: return losses
 
   def _add_key(self, inputs):
-    if isinstance(inputs, dict)
+    if isinstance(inputs, dict):
       if "key" in inputs:
         if isinstance(inputs["key"], jnp.ndarray):
           if inputs["key"].ndim == 2: inputs["key"] = self._key.get(inputs["key"].shape[0])
