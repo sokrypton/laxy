@@ -49,8 +49,8 @@ class OPT():
 
   def _add_key(self, inputs):
     if isinstance(inputs, dict) and "key" not in inputs:
-      inputs["key"] = self._key.get()
-    return inputs
+      return {**inputs,"key":self._key.get()}
+    else: return inputs
 
   # TODO, clean up _fit_batch
   def _fit_batch(self, inputs, steps, batch_size, batch_inputs=None,
