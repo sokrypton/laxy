@@ -32,17 +32,21 @@ Examples:
 * Can I use neural networks in my model?
   ```python
   from jax.experimental import stax
-  stax_layers = stax.serial(stax.Dense(5),stax.Elu,stax.Dense(1))
+  stax_layers = stax.serial(stax.Dense(5),
+                            stax.Elu,
+                            stax.Dense(1),
+                            stax.Dropout(0.5))
+
   nn_params, nn_layers = laxy.STAX(stax_layers, input_shape=(None,10))
 
   def model(params, inputs):
-    out = nn_layers(params["nn"], inputs["x"]) + params["a"]
+    out = nn_layers(params["nn"], inputs["x"], rng=inputs["key"]) + params["a"]
     loss = jnp.square(out - inputs["y"]).sum()
     return out, loss
     
   opt = laxy.OPT(model, params={"nn":nn_params,"a":1.0})
   ```
-* Can I use jax.random variables?
+* Can I use random variables?
 
   A random key is automatically added to the `inputs` dict at each optimization step.
   The seed for this key is set at `laxy.OPT(model, seed=0)`
