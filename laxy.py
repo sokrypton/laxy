@@ -139,10 +139,10 @@ def MRF(params=None):
     if use_bias: params["b"] = jnp.zeros((L,A))
     return params
   
-  def layer(x, return_w=False):
+  def layer(x, return_w=False, rm_diag=True):
     w = params["w"]
     L,A = w.shape[:2]
-    w = w * (1-jnp.eye(L)[:,None,:,None])
+    if rm_diag: w = w * (1-jnp.eye(L)[:,None,:,None])
     w = 0.5 * (w + w.transpose([2,3,0,1]))
     y = jnp.tensordot(x,w,2) 
     if "b" in params: y += params["b"]
