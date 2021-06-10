@@ -8,16 +8,17 @@ from jax.experimental.optimizers import adam
 #################
 
 class OPT():
-  def __init__(self, model, params, lr=1e-3, optimizer=adam, seed=None):
+  def __init__(self, model, params, has_grad=False, lr=1e-3, optimizer=adam, seed=None):
     self._k = 0
     self._key = KEY(seed)
     self._opt_init, self._opt_update, self._opt_params = optimizer(step_size=lr)
     self._opt_state = self._opt_init(params)
 
-    # split function into out and loss
+    # split function into out, loss and grad
     self._fn_out = jax.jit(lambda p,i: model(p,i)[0])
     self._fn_loss = jax.jit(lambda p,i: model(p,i)[1])
-    self._fn_grad = jax.value_and_grad(lambda p,i: model(p,i)[1].sum())
+    if has_grad: self._fn_grad = jax.jit(lambda p,i: model(p,i)[1:])
+    else: self._fn_grad = jax.value_and_grad(lambda p,i: model(p,i)[1].sum())
 
     def update(k, state, inputs):      
       loss, grad = self._fn_grad(self._opt_params(state), inputs)
