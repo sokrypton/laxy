@@ -10,6 +10,7 @@ from jax.experimental.optimizers import adam
 class OPT():
   def __init__(self, model, params, has_grad=False, lr=1e-3, optimizer=adam, seed=None):
     self._k = 0
+    self.losses = []
     self._key = KEY(seed)
     self._opt_init, self._opt_update, self._opt_params = optimizer(step_size=lr)
     self._opt_state = self._opt_init(params)
@@ -42,12 +43,11 @@ class OPT():
     if batch_size is not None:
       return self._fit_batch(inputs, steps, batch_size, batch_inputs,
                              verbose, return_losses, seed)
-    if return_losses: losses = []
     for k in range(steps):
       loss = self.train_on_batch(inputs)
-      if return_losses: losses.append(float(loss))
+      if return_losses: self.losses.append(float(loss))
       if verbose and (k+1) % (steps//10) == 0: print(k+1, loss)
-    if return_losses: return losses
+    if return_losses: return self.losses
 
   def _add_key(self, inputs):
     if isinstance(inputs, dict) and "key" not in inputs:
@@ -73,7 +73,6 @@ class OPT():
       return jax.tree_util.tree_map(lambda x: x[sub_idx], inp)
     subsample = jax.jit(subsample)
     
-    if return_losses: losses = []
     if verbose: loss_tot = 0
     for k in range(steps):
       inp = subsample(batch_inputs, key.get())
@@ -83,11 +82,11 @@ class OPT():
       
       loss = self.train_on_batch(inp)
       if verbose: loss_tot += loss
-      if return_losses: losses.append(float(loss))
+      if return_losses: self.losses.append(float(loss))
       if verbose and (k+1) % (steps//10) == 0:
         print(k+1, loss_tot/(steps//10))
         loss_tot = 0
-    if return_losses: return losses
+    if return_losses: return self.losses
       
 #################
 # UTILS
