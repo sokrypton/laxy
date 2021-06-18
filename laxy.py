@@ -35,6 +35,7 @@ class OPT():
   def get_params(self): return self._opt_params(self._opt_state)
   def evaluate(self, inputs): return self._fn_loss(self.get_params(), self._add_key(inputs))
   def predict(self, inputs): return self._fn_out(self.get_params(), self._add_key(inputs))
+  def grad(self, inputs): return self._fn_grad(self.get_params(), self._add_key(inputs))
   
   def fit(self, inputs, steps=100, batch_size=None, batch_inputs=None,
           verbose=True, return_losses=False, seed=None):
