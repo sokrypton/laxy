@@ -151,10 +151,10 @@ def MRF(params=None):
       w = 0.5 * (w + w.transpose([2,3,0,1]))
     if ar:
       # autoregressive
-      w = w * jnp.ones((L,L)).at[jnp.tril_indices(L)].set(0)[:,None,:,None]
+      w = w * jnp.ones((L,L)).at[jnp.tril_indices(L,1)].set(0)[:,None,:,None]
     if ar_rev:
       # autoregressive
-      w = w * jnp.ones((L,L)).at[jnp.triu_indices(L)].set(0)[:,None,:,None]
+      w = w * jnp.ones((L,L)).at[jnp.triu_indices(L,1)].set(0)[:,None,:,None]
       
     y = jnp.tensordot(x,w,2) # x (N,L,A), w (L,A,L,A)
     if "b" in params: y += params["b"]
