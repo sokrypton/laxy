@@ -140,7 +140,7 @@ def MRF(params=None):
     if use_bias: params["b"] = jnp.zeros((L,A))
     return params
   
-  def layer(x, return_w=False, rm_diag=True, symm=True, ar=False, ar_rev=False, mask=None):
+  def layer(x, return_w=False, rm_diag=True, symm=True, mask=None):
     w = params["w"]
     L,A = w.shape[:2]
     if rm_diag:
@@ -149,15 +149,8 @@ def MRF(params=None):
     if symm:
       # symmetrize
       w = 0.5 * (w + w.transpose([2,3,0,1]))
-    if ar:
-      # autoregressive
-      w = w * jnp.ones((L,L)).at[jnp.tril_indices(L,1)].set(0)[:,None,:,None]
-    if ar_rev:
-      # autoregressive
-      w = w * jnp.ones((L,L)).at[jnp.triu_indices(L,1)].set(0)[:,None,:,None]
     if mask is not None:
-      w = w * mask[:,None,:,None]
-      
+      w = w * mask[:,None,:,None]      
       
     y = jnp.tensordot(x,w,2) # x (N,L,A), w (L,A,L,A)
     if "b" in params: y += params["b"]
